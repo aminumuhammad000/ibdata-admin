@@ -4,6 +4,8 @@ import { NavLink } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/users', label: 'Users' },
+  { to: '/pricing', label: 'Pricing Plans' },
+  { to: '/wallet-credit', label: 'Wallet Credit' },
   { to: '/audit-logs', label: 'Audit Logs' },
   { to: '/profile', label: 'Profile/Settings' },
 ];

@@ -1,9 +1,10 @@
+import { useMutation } from '@tanstack/react-query';
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
-import { login as loginApi } from '../api/adminApi';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { login as loginApi } from '../api/adminApi';
+import { useAuthContext } from '../hooks/AuthContext';
+import { useToast } from '../hooks/ToastContext';
 
 type LoginForm = {
   email: string;
@@ -12,23 +13,38 @@ type LoginForm = {
 
 const Login: React.FC = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const [apiError, setApiError] = React.useState<string | null>(null);
   const navigate = useNavigate();
-  const auth = useAuth();
+  const auth = useAuthContext();
+  const toast = useToast();
 
   const mutation = useMutation({
     mutationFn: (data: LoginForm) => loginApi(data),
     onSuccess: (res: any) => {
+      console.log('Login response:', res);
+      setApiError(null);
       if (res.data.success) {
+        console.log('Login successful, saving auth data...');
         auth.login(res.data.data.token, res.data.data.admin);
+        console.log('Auth data saved, navigating to dashboard...');
+        toast.showSuccess('Login successful! Redirecting...');
         navigate('/dashboard');
+      } else {
+        const errMsg = res.data.message || 'Login failed';
+        setApiError(errMsg);
+        toast.showError(errMsg);
       }
     },
-    onError: () => {
-      alert('Login failed. Please check your credentials.');
+    onError: (error: any) => {
+      console.error('Login error:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Login failed. Please check your credentials.';
+      setApiError(errorMessage);
+      toast.showError(errorMessage);
     },
   });
 
   const onSubmit = (data: LoginForm) => {
+    setApiError(null);
     mutation.mutate(data);
   };
 
@@ -51,6 +67,21 @@ const Login: React.FC = () => {
           onSubmit={handleSubmit(onSubmit)}
           className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200"
         >
+          {/* API Error Alert */}
+          {apiError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-red-800">Login Failed</h3>
+                  <p className="text-sm text-red-700 mt-1">{apiError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
